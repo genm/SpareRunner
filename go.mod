@@ -2,7 +2,7 @@ module github.com/genm/sparerunner
 
 go 1.26.4
 
-toolchain go1.26.5
+toolchain go1.26.7
 
 require (
 	fyne.io/systray v1.12.2
