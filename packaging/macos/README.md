@@ -149,15 +149,42 @@ variable. This packaged join path prints the launchd activation command above;
 it does not tell the operator to start a second `sparerunner-agent serve` process.
 
 This is an initial-install contract, not an upgrade mechanism. If preflight
-reports foreign, partial, or changed state, inspect it and use the future
-documented upgrade/recovery flow; do not add a force-adopt option or manually
-rewrite the ownership marker. See "Uninstallation" above for removal.
+reports foreign, partial, or changed state, inspect it and use
+`upgrade-service.sh` below or "Uninstallation" above; do not add a
+force-adopt option or manually rewrite the ownership marker.
 
 Inspect the non-secret service state with:
 
 ```bash
 sudo launchctl print system/com.genm.sparerunner.agent
 ```
+
+## Upgrade
+
+Upgrades are owned by `upgrade-service.sh`. Publish the new binaries the same
+way as the initial install, then run the upgrade script from the new package:
+
+```bash
+sudo install -o root -g wheel -m 0755 ./sprun /usr/local/bin/sprun
+sudo install -o root -g wheel -m 0755 \
+  ./sparerunner-agent /usr/local/libexec/sparerunner-agent
+sudo ./packaging/macos/upgrade-service.sh
+```
+
+It requires the ownership markers of an existing installation, unloads the
+LaunchDaemon, replaces the property list only when it can prove SpareRunner
+published it, and bootstraps the daemon again so launchd runs the new binary.
+An installed plist already byte-identical to the new package needs no proof,
+so a binary-only upgrade — the common case — requires nothing else. When the
+packaged plist changed between releases, pass
+`--previous <previous-release-plist>` so the installed plist's provenance is
+verified byte for byte before it is replaced; release archives are
+reproducible and checksummed, so the old plist can always be re-downloaded to
+supply that proof. A plist that matches neither package is an operator edit
+the upgrade refuses before its first mutation, and a failure after the daemon
+stops restores and restarts the previous installation through a verified
+rollback. Node state, the package cache, and the dedicated runner account are
+never touched.
 
 ## Sleep and reboot
 
